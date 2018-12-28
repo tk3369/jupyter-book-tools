@@ -1,0 +1,35 @@
+#!/bin/sh
+#
+# Generate PDF file from ipynb notebook.
+# Several tricks are done to post-process the latex files.
+
+if [ $# -ne 1 ]; then
+    echo "Usage: `basename $0` filename"
+    exit 1
+fi
+
+file="$1"
+if [ ! -f "$file" ]; then
+    echo "Error: file not found $file"
+    exit 2
+fi
+
+if [ -f booktemplate.tplx ]; then
+    template="--template booktemplate.tplx"
+fi
+
+texfile=`echo "$file" | sed -e 's/ipynb/tex/g'`
+
+jupyter nbconvert --to latex $template $file
+if [ $? -eq 0 ]; then    # successful conversion
+
+    # deal with copyright
+    mv "$texfile" "bak_$texfile"
+    sed -e 's/©/\\textcopyright /g' < "bak_$texfile" > "$texfile"
+
+    # deal with dollar signs with the extra slash
+    mv "$texfile" "bak_$texfile"
+    sed -e 's/\\textbackslash{}\\\$/\\$/g' < "bak_$texfile" > "$texfile" 
+
+    xelatex $texfile 
+fi
