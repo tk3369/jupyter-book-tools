@@ -16,8 +16,10 @@ RUN mkdir /book && \
     mkdir -p /usr/local/bin 
 
 COPY genbook /usr/bin/genbook
+COPY welcome /usr/bin/welcome
+COPY sample-booktemplate.tplx /etc/booktemplate.tplx
 
 WORKDIR /book
 
-CMD ["/bin/bash"]
+CMD ["/usr/bin/welcome"]
 
