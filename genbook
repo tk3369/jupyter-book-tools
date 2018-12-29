@@ -3,36 +3,61 @@
 # Generate PDF file from ipynb notebook.
 # Several tricks are done to post-process the latex files.
 
-if [ $# -ne 1 ]; then
-    echo "Usage: `basename $0` filename"
+OPTIND=1         # Reset in case getopts has been used previously in the shell.
+
+template="/etc/booktemplate.tplx"
+while getopts "h?t:" opt; do
+    case "$opt" in
+    h|\?)
+        echo "Usage: `basename $0` [-t templatefile] filename"
+        exit 0
+        ;;
+    t)  template=$OPTARG
+        ;;
+    esac
+done
+shift $((OPTIND-1))
+
+# check if filename argument exists
+if [ $# -lt 1 ]; then
+    echo "Usage: `basename $0` [-t templatefile] filename"
     exit 1
 fi
 
+# check if file exists
 file="$1"
 if [ ! -f "$file" ]; then
     echo "Error: file not found $file"
     exit 2
 fi
 
-if [ -f booktemplate.tplx ]; then
-    echo "INFO: using custom booktemplate.tplx"
-    template="--template booktemplate.tplx"
-else
-    template="--template /etc/booktemplate.tplx"
-fi
+logfile=genbook.log
 
-texfile=`echo "$file" | sed -e 's/ipynb/tex/g'`
+jupyter nbconvert --to latex --template $template $file > $logfile 2>&1
 
-jupyter nbconvert --to latex $template $file
 if [ $? -eq 0 ]; then    # successful conversion
+    texfile=`echo "$file" | sed -e 's/ipynb/tex/g'`
 
-    # deal with copyright
+    # problem: copyright character isn't recognized by xelatex properly
+    # solution: replace with \textcopyright command 
     mv "$texfile" "bak_$texfile"
     sed -e 's/©/\\textcopyright /g' < "bak_$texfile" > "$texfile"
 
-    # deal with dollar signs with the extra slash
+    # problem: jupyter markdown requires double back slashes to escape dollar sign
+    # solution: remove the extra slash from the latex file
     mv "$texfile" "bak_$texfile"
     sed -e 's/\\textbackslash{}\\\$/\\$/g' < "bak_$texfile" > "$texfile" 
 
-    xelatex $texfile 
-fi
+    # problem: latest pandoc (2.2.1) places hypertarget for <a> tag but were referenced by \ref
+    # solution: this is fixed by replacing \ref with \hyperlink command
+    mv "$texfile" "bak_$texfile"
+    sed -e 's/\\href{/\\hyperlink{/g' < "bak_$texfile" > "$texfile" 
+
+    xelatex $texfile  
+
+    grep rerun $logfile >/dev/null
+    if [ $? -eq 1 ]; then
+        echo "Rerunning xelatex as suggested by xelatex" >> $logfile
+        xelatex $texfile  
+    fi
+fi >> $logfile 2>&1
