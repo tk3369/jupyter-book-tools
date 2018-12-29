@@ -14,7 +14,12 @@ if [ ! -f "$file" ]; then
     exit 2
 fi
 
-template="--template /etc/booktemplate.tplx"
+if [ -f booktemplate.tplx ]; then
+    echo "INFO: using custom booktemplate.tplx"
+    template="--template booktemplate.tplx"
+else
+    template="--template /etc/booktemplate.tplx"
+fi
 
 texfile=`echo "$file" | sed -e 's/ipynb/tex/g'`
 
