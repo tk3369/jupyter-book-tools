@@ -10,7 +10,7 @@ RUN apt-get -y update && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* 
 
 # jupyter layer
-RUN pip3 install jupyter 
+RUN pip3 install jupyter nbmerge
 
 # /book is the mount point
 RUN mkdir /book 
