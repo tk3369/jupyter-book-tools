@@ -1,0 +1,26 @@
+#!/bin/sh
+
+echo ""
+echo "======================================================================"
+echo ""
+echo "Welcome to jupyter-book-tools!"
+echo ""
+echo "Use the genbook command to convert any notebook files to PDF e.g."
+echo ""
+echo "   $ genbook chapter1.ipynb"
+echo ""
+echo "If you need to use any specific jupyter nbconvert template file,"
+echo "you must name it as booktemplate.tplx in this directory."
+echo ""
+echo "There is a sample template in /etc directory that you may find it useful."
+echo "To use that template, just copy it here before running genbook."
+echo ""
+echo "  $ cp /etc/booktemplate.tplx ."
+echo ""
+echo "Any questions?  Please submit an issue at the github repo."
+echo "https://github.com/tk3369/jupyter-book-tools/"
+echo ""
+echo "======================================================================"
+echo ""
+
+exec /bin/bash
