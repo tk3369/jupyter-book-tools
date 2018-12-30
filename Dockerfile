@@ -4,8 +4,11 @@ FROM ubuntu:cosmic
 ARG DEBIAN_FRONTEND=noninteractive
 
 # system package install
+# optional: texlive-fonts-extra 
 RUN apt-get -y update && \
-    apt-get -y install ca-certificates python3 python3-pip texlive-xetex pandoc && \
+    apt-get -y install ca-certificates python3 python3-pip \
+	    texlive-latex-base texlive-latex-extra texlive-fonts-recommended \
+		pandoc && \
     apt-get autoclean && apt-get --purge --yes autoremove && \ 
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* 
 
@@ -17,7 +20,7 @@ RUN mkdir /book
 
 COPY genbook /usr/bin/genbook
 COPY welcome /usr/bin/welcome
-COPY sample-booktemplate.tplx /etc/booktemplate.tplx
+COPY booktemplate.tplx /etc/booktemplate.tplx
 
 WORKDIR /book
 
