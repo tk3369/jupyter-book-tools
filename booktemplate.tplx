@@ -1,0 +1,76 @@
+((* set cell_style = 'style_ipython.tplx' *))
+((* extends 'article.tplx' *))
+
+((* block packages *))
+  ((( super() )))
+  % create fancy boxes around text
+  % http://ftp.math.purdue.edu/mirrors/ctan.org/macros/latex/contrib/tcolorbox/tcolorbox.pdf
+  \usepackage{tcolorbox}
+((* endblock packages *))
+
+((* block maketitle *))
+  ((*- set nb_author = nb.metadata.get('author', '') -*))
+  ((* if nb_author != '': *))
+    \author{((( nb_author | ascii_only | escape_latex )))}
+  ((* endif *))
+  ((( super() )))
+((* endblock maketitle *))
+
+((* block commands *))
+  ((( super() )))
+  % define custom margins
+  \geometry{verbose,tmargin=1in,bmargin=1in,lmargin=1in,rmargin=1in}
+  \renewcommand{\includegraphics}[1]{\Oldincludegraphics[width=\maxwidth]{#1}}
+
+  % relax line spacing
+  % https://www.overleaf.com/learn/latex/Paragraph_formatting#Paragraph_spacing
+  \renewcommand{\baselinestretch}{1.2}
+
+  % set vertical spacing above lists
+  % http://mirror.las.iastate.edu/tex-archive/macros/latex/contrib/enumitem/enumitem.pdf
+  \setlist{topsep=0pt}
+
+  % page break after every section
+  % https://tex.stackexchange.com/questions/131015/page-break-after-every-section
+  \let\oldsection\section
+  \renewcommand\section{\clearpage\oldsection}
+
+  % page break control
+  % https://tex.stackexchange.com/questions/94699/absolutely-definitely-preventing-page-break/94702#94702
+  \newenvironment{absolutelynopagebreak}
+    {\par\nobreak\vfil\penalty0\vfilneg\vtop\bgroup}
+    {\par\xdef\tpd{\the\prevdepth}\egroup\prevdepth=\tpd}
+((* endblock commands *))
+
+((* block predoc *))
+  ((( super() )))
+  % use the h option for figures, which places the figure in approximately the same spot as in the text
+  % https://stackoverflow.com/questions/49040322/how-to-force-image-to-text-when-converting-markdown-to-pdf-using-pandoc
+  \makeatletter
+  \def\fps@figure{h}
+  \makeatother
+((* endblock predoc *))
+
+((* block input *))
+  \begin{tcolorbox}[colback=yellow!5!white,before skip=0.3cm]
+  \renewcommand{\baselinestretch}{1}   %force single line spacing
+  ((( super() )))
+  \end{tcolorbox}
+((* endblock input *))
+
+((* block output *))
+  \begin{tcolorbox}[colback=blue!5!white,before skip=0.3cm]
+  \renewcommand{\baselinestretch}{1}   %force single line spacing
+  ((( super() )))
+  \end{tcolorbox}
+((* endblock output *))
+
+((* block any_cell *))
+  ((* if cell['metadata'].get('box', {}).get('title', '') != '' *))
+    \begin{tcolorbox}[title=((( cell['metadata'].get('box', {}).get('title', '') )))]
+	((( super() )))
+    \end{tcolorbox}
+  ((* else *))
+	((( super() )))
+  ((* endif *))
+((* endblock any_cell *))
