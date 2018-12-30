@@ -3,31 +3,79 @@
 # Generate PDF file from ipynb notebook.
 # Several tricks are done to post-process the latex files.
 
-if [ $# -ne 1 ]; then
-    echo "Usage: `basename $0` filename"
+OPTIND=1         # Reset in case getopts has been used previously in the shell.
+
+template="/etc/booktemplate.tplx"
+pdf=1
+engine="pdflatex -interaction=nonstopmode"
+while getopts "h?nt:e:" opt; do
+    case "$opt" in
+    h|\?)
+        echo "Usage: `basename $0` [-t templatefile] [-e pdflatex|xelatex] [-n] filename"
+        exit 0
+        ;;
+    n)  pdf=0
+        ;;
+    e)  engine=$OPTARG
+        echo "Using engine $engine"
+        ;;
+    t)  template=$OPTARG
+        ;;
+    esac
+done
+shift $((OPTIND-1))
+
+# check if filename argument exists
+if [ $# -lt 1 ]; then
+    echo "Usage: `basename $0` [-t templatefile] [-e pdflatex|xelatex] [-n] filename"
+    echo "  Default engine is pdflatex"
     exit 1
 fi
 
+# check if file exists
 file="$1"
 if [ ! -f "$file" ]; then
     echo "Error: file not found $file"
     exit 2
 fi
 
-template="--template /etc/booktemplate.tplx"
+logfile=genbook.log
 
-texfile=`echo "$file" | sed -e 's/ipynb/tex/g'`
+jupyter nbconvert --to latex --template $template $file > $logfile 2>&1
 
-jupyter nbconvert --to latex $template $file
-if [ $? -eq 0 ]; then    # successful conversion
+if [ $? -eq 0  ]; then    # successful conversion
+    if [ $pdf = 0 ]; then
+        echo "Skipping PDF generation per -n option"
+    else
+        texfile=`echo "$file" | sed -e 's/ipynb/tex/g'`
 
-    # deal with copyright
-    mv "$texfile" "bak_$texfile"
-    sed -e 's/©/\\textcopyright /g' < "bak_$texfile" > "$texfile"
+        # keep a copy of the original tex file for debugging purpose
+        cp "$texfile" "${texfile}.orig"
 
-    # deal with dollar signs with the extra slash
-    mv "$texfile" "bak_$texfile"
-    sed -e 's/\\textbackslash{}\\\$/\\$/g' < "bak_$texfile" > "$texfile" 
+        # problem: copyright character isn't recognized by xelatex properly
+        # solution: replace with \textcopyright command 
+        # -- commented out since it seems to be a problem with xelatex only (not pdflatex)
+        #if [ "$engine" = "xelatex"]; then
+        #    mv "$texfile" "bak_$texfile"
+        #    sed -e 's/©/\\textcopyright /g' < "bak_$texfile" > "$texfile"
+        #fi
+    
+        # problem: jupyter markdown requires double back slashes to escape dollar sign
+        # solution: remove the extra slash from the latex file
+        mv "$texfile" "bak_$texfile"
+        sed -e 's/\\textbackslash{}\\\$/\\$/g' < "bak_$texfile" > "$texfile" 
 
-    xelatex $texfile 
-fi
+        # problem: latest pandoc (2.2.1) places hypertarget for headers but were referenced by \href
+        # solution: this is fixed by replacing \href with \hyperlink command but only for local anchors
+        mv "$texfile" "bak_$texfile"
+        perl -pe 's/href\{(?!http)(.*)\}/hyperlink\{\1\2\}/g' < "bak_$texfile" > "$texfile" 
+
+        # convert to PDF now.  Run it twice to ensure cross refs are correct.
+        $engine $texfile  
+        $engine $texfile  
+    fi
+fi >> $logfile 2>&1
+
+n=5
+echo "== Last $n lines of log file $logfile"
+tail -$n $logfile
